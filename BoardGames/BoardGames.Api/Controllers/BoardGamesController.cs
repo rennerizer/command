@@ -1,7 +1,9 @@
-﻿using BoardGames.Api.DTO;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using System.Xml.Linq;
+﻿using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.EntityFrameworkCore;
+
+using BoardGames.Api.DTO;
+using BoardGames.Api.Models;
 
 namespace BoardGames.Api.Controllers
 {
@@ -9,21 +11,27 @@ namespace BoardGames.Api.Controllers
     [ApiController]
     public class BoardGamesController : ControllerBase
     {
-
         private readonly ILogger<BoardGamesController> _logger;
 
-        public BoardGamesController(ILogger<BoardGamesController> logger)
+        private readonly BoardGamesContext _context;
+
+        public BoardGamesController(BoardGamesContext context, ILogger<BoardGamesController> logger)
         {
+            _context = context;
             _logger = logger;
         }
 
         [HttpGet(Name = "BoardGames")]
         [ResponseCache(Location = ResponseCacheLocation.Any, Duration = 60)]
-        public RestDTO<BoardGame[]> Get()
+        public async Task<RestDTO<BoardGame[]>> Get()
         {
+            var query = _context.BoardGames;
+
             return new RestDTO<BoardGame[]>()
             {
-                Data = new BoardGame[] {
+                Data = await query.ToArrayAsync(),
+
+                /*Data = new BoardGame[] {
                     new BoardGame
                     {
                         Id = 1,
@@ -48,7 +56,8 @@ namespace BoardGames.Api.Controllers
                         MinPlayers = 1,
                         MaxPlayers= 5
                     }
-                },
+                },*/
+
                 Links = new List<LinkDTO>{
                     new LinkDTO(
                         Url.Action(null, "BoardGames", null, Request.Scheme)!,
