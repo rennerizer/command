@@ -1,11 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-
 using Microsoft.EntityFrameworkCore;
 
+using System.ComponentModel.DataAnnotations;
 using System.Linq.Dynamic.Core;
 
 using BoardGames.Api.DTO;
 using BoardGames.Api.Models;
+using BoardGames.Api.Attributes;
 
 namespace BoardGames.Api.Controllers
 {
@@ -25,38 +26,33 @@ namespace BoardGames.Api.Controllers
 
         [HttpGet(Name = "BoardGames")]
         [ResponseCache(Location = ResponseCacheLocation.Any, Duration = 60)]
-        public async Task<RestDTO<BoardGame[]>> Get(
-            int pageIndex = 0, 
-            int pageSize = 10,
-            string? sortColumn = "Name",
-            string? sortOrder = "ASC",
-            string? filterQuery = null)
+        public async Task<RestDTO<BoardGame[]>> Get([FromQuery] RequestDTO<BoardGameDTO> request)
         {
             var query = _context.BoardGames.AsQueryable();
 
-            if (!string.IsNullOrEmpty(filterQuery))
-                query = query.Where(b => b.Name.Contains(filterQuery));
+            if (!string.IsNullOrEmpty(request.FilterQuery))
+                query = query.Where(b => b.Name.Contains(request.FilterQuery));
 
             var recordCount = await query.CountAsync();
 
             query = query
-                .OrderBy($"{sortColumn} {sortOrder}")
-                .Skip(pageIndex * pageSize)
-                .Take(pageSize);
+                .OrderBy($"{request.SortColumn} {request.SortOrder}")
+                .Skip(request.PageIndex * request.PageSize)
+                .Take(request.PageSize);
 
             return new RestDTO<BoardGame[]>()
             {
                 Data = await query.ToArrayAsync(),
 
-                PageIndex = pageIndex,
+                PageIndex = request.PageIndex,
                 
-                PageSize = pageSize,
+                PageSize = request.PageSize,
 
                 RecordCount = recordCount,
 
                 Links = new List<LinkDTO>{
                     new LinkDTO(
-                        Url.Action(null, "BoardGames", null, Request.Scheme)!,
+                        Url.Action(null, "BoardGames", new { request.PageIndex, request.PageSize}, Request.Scheme)!,
                         "self",
                         "GET"
                     )
